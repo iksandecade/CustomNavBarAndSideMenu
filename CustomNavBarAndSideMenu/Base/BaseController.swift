@@ -22,6 +22,7 @@ class BaseController: UIViewController {
     lazy internal var leftMenu = SideMenuNavigationController(rootViewController: LeftMenuViewController())
     lazy internal var rightMenu = SideMenuNavigationController(rootViewController: RightMenuViewController())
     
+    var previousOffset: CGPoint?
     
     @IBInspectable var containerBackground: UIColor? {
         didSet {
@@ -81,41 +82,73 @@ class BaseController: UIViewController {
         SideMenuManager.default.addScreenEdgePanGesturesToPresent(toView: view)
     }
     
-    func updateTopBar(offsetY: Double, isEndedDragging: Bool = false) {
-        var height = 160 - offsetY
+    func updateTopBar(scrollView: UIScrollView, isEndedDragging: Bool = false) {
+        var topBarHeight = topBarview.frame.height
         
-        if isEndedDragging {
-            if height < 80 { //MARK: condition for bigTitleLabel height < 25%
-                height = 64
-            } else if (height - (160-36)) < 10 { //MARK: condition for searchTextField < 25%
-                height = 124
-            } else { //MARK: condition to normal height for subTopBar
-                height = 160
+        let currentOffset = scrollView.contentOffset
+        
+        if let startOffset = previousOffset {
+            let delta = abs((startOffset.y - currentOffset.y))
+            
+            if currentOffset.y > startOffset.y, currentOffset.y > .zero {
+                var newHeight = topBarHeight - delta
+                
+                if newHeight < 64 {
+                    newHeight = 64
+                }
+                
+                topBarHeight = newHeight
+            } else if currentOffset.y < startOffset.y, currentOffset.y <= 160 {
+                var newHeight = topBarHeight + delta
+                
+                if newHeight > 160 {
+                    newHeight = 160
+                }
+                
+                topBarHeight = newHeight
             }
-        } else {
-            if height < 64 {
-                height = 64
-            } else if height > 160 {
-                height = 160
+            
+            previousOffset = scrollView.contentOffset
+            
+            if isEndedDragging {
+                if topBarHeight < 80 { //MARK: condition for bigTitleLabel height < 25%
+                    topBarHeight = 64
+                } else if (topBarHeight - (160-36)) < 10 { //MARK: condition for searchTextField < 25%
+                    topBarHeight = 124
+                } else { //MARK: condition to normal height for subTopBar
+                    topBarHeight = 160
+                }
+            }
+            
+            print("topbarheight \(topBarHeight)")
+            topBarSpacerHeight.snp.updateConstraints { make in
+                make.height.equalTo(topBarHeight)
+            }
+            
+            topBarview.updateTopBarHeight(height: topBarHeight)
+            
+            if topBarHeight < 124 {
+                topBarview.setAlpha(alpha: (topBarHeight-64)/60)
+            } else {
+                topBarview.setAlpha(alpha: 1)
+            }
+            
+            if isEndedDragging {
+                animateTopViewHeight()
+            } else {
+                self.view.layoutIfNeeded()
             }
         }
-        
+    }
+    
+    func hideSearchBar() {
         topBarSpacerHeight.snp.updateConstraints { make in
-            make.height.equalTo(height)
+            make.height.equalTo(124)
         }
         
-        topBarview.updateTopBarHeight(height: height)
-
-        if height < 124 {
-            print((height-64)/60)
-            topBarview.setAlpha(alpha: (height-64)/60)
-        } else {
-            topBarview.setAlpha(alpha: 1)
-        }
+        topBarview.updateTopBarHeight(height: 124)
         
-        if isEndedDragging {
-            animateTopViewHeight()
-        }
+        topBarview.setAlpha(alpha: 1)
     }
     
     private func animateTopViewHeight() {

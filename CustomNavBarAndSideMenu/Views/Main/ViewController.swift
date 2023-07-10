@@ -16,6 +16,13 @@ class ViewController: BaseController {
         setupTopBar(title: "CustomBar")
         mainTableview.dataSource = self
         mainTableview.delegate = self
+
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        hideSearchBar()
+        previousOffset = mainTableview.contentOffset
     }
 }
 
@@ -33,7 +40,11 @@ extension ViewController: UITableViewDataSource, UITableViewDelegate {
     
     //MARK: When tableview/scrollview scrolling
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        updateTopBar(offsetY: scrollView.contentOffset.y)
+        mainTableview.scrollsToTop = true
+        
+        updateTopBar(scrollView: scrollView)
+        
+     
     }
     
     
@@ -41,7 +52,14 @@ extension ViewController: UITableViewDataSource, UITableViewDelegate {
     func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
         //MARK: when ended scrolling, check if searchTextField height > 25% then searchTextField normal height else hide textfield
         //MARK: if BigTitleLabel > 25% then BigTitleLabel normal height else hide bigTitleLabel and subTopBar
-        updateTopBar(offsetY: scrollView.contentOffset.y, isEndedDragging: true)
+        
+        if !decelerate {
+            updateTopBar(scrollView: scrollView, isEndedDragging: true)
+        }
+    }
+    
+    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+        updateTopBar(scrollView: scrollView, isEndedDragging: true)
     }
 }
 
